@@ -1,0 +1,44 @@
+# Version control
+.git/
+.gitignore
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Python artefacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node / UI artefacts
+ui/node_modules/
+ui/dist/
+ui/.vite/
+*.tsbuildinfo
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db
+temporal.db
+postgres-data/
+
+# Docs and tooling
+*.md
+.dockerignore
+docker-compose*.yml
+
+# OS
+.DS_Store
+Thumbs.db

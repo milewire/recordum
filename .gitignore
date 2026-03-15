@@ -1,0 +1,68 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+*.egg
+dist/
+build/
+.ruff_cache/
+.python-version
+
+# Node / UI
+node_modules/
+ui/dist/
+ui/node_modules/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and coverage
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Local / dev databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporal dev server (stores ephemeral state here by default)
+temporal.db
+
+# Docker — local Postgres volume (if bind-mounted instead of named volume)
+postgres-data/
+
+# Ollama (model blobs are large binary files)
+*.gguf
+*.ggml
+
+# Snapshots (local dev tool artifacts)
+.snapshots/

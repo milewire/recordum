@@ -1,0 +1,102 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recordum}
+      POSTGRES_DB: recordum
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Apply the audit_log schema on first boot
+      - ./schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Temporal server ────────────────────────────────────────────────
+  temporal:
+    image: temporalio/auto-setup:1.26
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-recordum}
+      POSTGRES_SEEDS: postgres
+    ports:
+      - "7233:7233"
+    restart: unless-stopped
+
+  # ── Temporal Web UI (optional — open http://mac-mini.local:8088) ───
+  temporal-ui:
+    image: temporalio/ui:2.34.0
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "8088:8080"
+    restart: unless-stopped
+
+  # ── Python worker ──────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m app.temporal_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    env_file: .env
+    environment:
+      # Override .env values to use Docker service names
+      TEMPORAL_HOST: temporal:7233
+      POSTGRES_DSN: postgresql://postgres:${POSTGRES_PASSWORD:-recordum}@postgres:5432/recordum
+      # Reach Ollama running natively on the host machine
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: on-failure
+
+  # ── FastAPI ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    env_file: .env
+    environment:
+      TEMPORAL_HOST: temporal:7233
+      POSTGRES_DSN: postgresql://postgres:${POSTGRES_PASSWORD:-recordum}@postgres:5432/recordum
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: on-failure
+
+  # ── nginx — serves built React UI + proxies API ────────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
